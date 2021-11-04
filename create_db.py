@@ -7,7 +7,7 @@ HOST = input('Type HOST: ')
 
 sql_create_db = "CREATE DATABASE messages_db;"
 sql_create_table_user = '''CREATE TABLE Users (
-    id serial PRIMARY KEY, 
+    id serial PRIMARY KEY,
     username varchar(225) UNIQUE,
     hashed_password varchar(80)
 );'''

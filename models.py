@@ -1,6 +1,18 @@
 import hashlib
-import random
 
+def generate_salt():
+    """
+    Generates a 16-character random salt.
+
+    :rtype: str
+    :return: str with generated salt
+    """
+    salt = ""
+    for i in range(0, 16):
+
+        # get a random element from the iterable
+        salt += random.choice('abcdefghijklmnopqrstuvwxyz')
+    return salt
 
 def hash_password(password, salt=None):
     """
@@ -68,51 +80,130 @@ def check_password(pass_to_check, hashed):
     # compare hashes. If equal, return True
     return new_hash[16:] == hash_to_check
 
-def generate_salt():
-    """
-    Generates a 16-character random salt.
-
-    :rtype: str
-    :return: str with generated salt
-    """
-    salt = ""
-    for i in range(0, 16):
-
-        # get a random element from the iterable
-        salt += random.choice(ALPHABET)
-    return salt
-
-
-class Users:
-    def __init__(self, username, password, salt=""):
-        self.username = username
+class User:
+    def __init__(self, username="", password="", salt=""):
         self._id = -1
+        self.username = username
         self._hashed_password = hash_password(password, salt)
-
+        
     @property
     def id(self):
         return self._id
 
     @property
-    def hashed_password(self):
+    def password(self, password):
         return self._hashed_password
 
     def set_password(self, password, salt=""):
-        self._hashed_password = hash_password(password, salt)
-
-    @hashed_password.setter
-    def hashed_password(self, password):
-        self.set_password(password)
-
+        self._hashed_password = password
+        
+    @password.setter
+    def password(self, password):
+        self._hashed_password = hash_password(password)
+        
     def save_to_db(self, cursor):
         if self._id == -1:
-            sql = f"""INSERT INTO users(username, hashed_password)
-                                    VALUES({self.username}, {self.hashed_password}) RETURNING id"""
-            values = (self.username, self.hashed_password)
+            sql = """INSERT INTO users(username, hashed_password) VALUES ('%s', '%s') RETURNING id;"""
+            values = (self.username, self._hashed_password)
             cursor.execute(sql, values)
-            self._id = cursor.fetchone()[0]  # or cursor.fetchone()['id']
-            return True
-        return False
+            elf._id = cursor.fetchone()[0]
+        else:
+            sql = """UPDATE Users SET username=%s, hashed_password=%s
+                           WHERE id=%s"""
+            values = (self.username, self._hashed_password, self._id)
+            cursor.execute(sql, values)
+        return True
+    
+    @staticmethod
+    def load_user_by_username(cursor, username):
+        sql = "SELECT * FROM Users WHERE username=%s;"
+        values = (username, )
+        cursor.execute(sql, values)
+        data = cursor.fetchone()
+        if data:
+            id, username, hashed_password = data
+            loaded_user = User(username)
+            loaded_user._id = id
+            loaded_user._hashed_password = hashed_password
+            return loaded_user
+        else:
+            return None
 
-nowy_user = Users('login', 'haslo')
-nowy_user.hashed_password('1234')
+
+    @staticmethod
+    def load_user_by_id(cursor, id_):
+        sql = "SELECT id, username, hashed_password FROM users WHERE id=%s"
+        values = (id_, )
+        cursor.execute(sql, values)
+        data = cursor.fetchone()
+        if data:
+            id_, username, hashed_password = data
+            loaded_user = User(username)
+            loaded_user._id = id_
+            loaded_user._hashed_password = hashed_password
+            return loaded_user
+        else:
+            return None
+
+    @staticmethod
+    def load_all_users(cursor):
+        sql = "SELECT id, username, hashed_password FROM Users"
+        users = []
+        cursor.execute(sql)
+        for row in cursor.fetchall():
+            id_, username, hashed_password = row
+            loaded_user = User()
+            loaded_user._id = id_
+            loaded_user.username = username
+            loaded_user._hashed_password = hashed_password
+            users.append(loaded_user)
+        return users
+    
+    def delete(self, cursor):
+        sql = "DELETE FROM Users WHERE id=%s"
+        cursor.execute(sql, (self.id,))
+        self._id = -1
+        return True
+
+class Message:
+    def __init__(self, from_id, to_id, text):
+        self._id = -1
+        self.from_id = from_id
+        self.to_id = to_id
+        self.text = text
+        self._creation_date = None
+        
+    @property
+    def id(self):
+        return self._id
+    
+    @property
+    def creation_date(self):
+        return self._creation_date
+    
+    def save_to_db(self, cursor):
+        if self._id == -1:
+            sql = """INSERT INTO Message(from_id, to_id, creation_date, text) VALUES ('%s', '%s') RETURNING id, creation_date;"""
+            values = (self.from_id, self.to_id, self.text,)
+            cursor.execute(sql, values)
+            self._id, self._creation_date = cursor.fetchone()
+        else:
+            sql = """UPDATE Message SET from_id=%s, to_id=%s, text=%s
+            WHERE id=%s"""
+            values = (self.from_id, self.to_id, self.text, self._id)
+            cursor.execute(sql, values)
+        return True
+
+
+    @staticmethod
+    def load_all_messages(cursor):
+        sql = "SELECT id, from_id, to_id, text, creation_date FROM Messages;"
+        messages = []
+        cursor.execute(sql)
+        for row in cursor.fetchall():
+            id_, from_id, to_id, text, creation_date = row
+            loaded_message = Message(from_id, to_id, text)
+            loaded_message._id = id_
+            loaded_message._creation_date = creation_date
+            messages.append(loaded_message)
+        return messages
