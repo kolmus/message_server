@@ -1,4 +1,5 @@
 import hashlib
+import random
 
 def generate_salt():
     """
@@ -106,7 +107,7 @@ class User:
             sql = """INSERT INTO users(username, hashed_password) VALUES ('%s', '%s') RETURNING id;"""
             values = (self.username, self._hashed_password)
             cursor.execute(sql, values)
-            elf._id = cursor.fetchone()[0]
+            self._id = cursor.fetchone()[0]
         else:
             sql = """UPDATE Users SET username=%s, hashed_password=%s
                            WHERE id=%s"""
