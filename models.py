@@ -1,30 +1,29 @@
 from clcrypto import hash_password
-import random
 
 class User:
-    def __init__(self, username="", password="", salt=""):
+    def __init__(self, username='', password='', salt=''):
         self._id = -1
         self.username = username
         self._hashed_password = hash_password(password, salt)
-        
+    
     @property
     def id(self):
         return self._id
 
     @property
-    def password(self, password):
+    def hashed_password(self):
         return self._hashed_password
 
-    def set_password(self, password, salt=""):
-        self._hashed_password = password
-        
-    @password.setter
-    def password(self, password):
+    def set_password(self, password, salt=''):
         self._hashed_password = hash_password(password)
-        
+    
+    @hashed_password.setter
+    def hashed_password(self, new_pass):
+        self._hashed_password = hash_password(new_pass)
+    
     def save_to_db(self, cursor):
         if self._id == -1:
-            sql = """INSERT INTO users(username, hashed_password) VALUES ('%s', '%s') RETURNING id;"""
+            sql = """INSERT INTO users(username, hashed_password) VALUES (%s, %s) RETURNING id;"""
             values = (self.username, self._hashed_password)
             cursor.execute(sql, values)
             self._id = cursor.fetchone()[0]

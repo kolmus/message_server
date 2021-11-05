@@ -20,9 +20,11 @@ def list_of_messages(username, cursor):
     for message in message_list:
         print(message + (30 * '-'))
 
+def send_message(user_to, content):
+    
 
 
-if __name__ == '__mail__':
+if __name__ == '__main__':
     try:
         pass
     except psycopg2.OperationalError as error:
